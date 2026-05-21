@@ -619,7 +619,6 @@ install_pkg curl
 install_pkg git
 install_pkg s-nail
 install_pkg e2fsprogs
-install_pkg lsb-release
 install_pkg vim
 install_pkg unzip
 install_pkg bind
@@ -627,7 +626,6 @@ install_pkg bind
 rm_if_exists /tmp/dotfiles
 rm_if_exists /root/anaconda-ks.cfg /var/log/anaconda
 run_external "pacman -Syu --noconfirm"
-[ $RELEASE_VER -ge 9 ] && install_pkg glibc-langpack-en
 ##################################################################################################################
 printf_head "Enabling ip forwarding"
 ##################################################################################################################
@@ -675,7 +673,6 @@ install_pkg cronie
 # install_pkg crontabs  # skipped on arch
 install_pkg curl
 install_pkg ctags
-# install_pkg deltarpm  # skipped on arch
 install_pkg dialog
 install_pkg docker
 install_pkg ethtool
@@ -792,6 +789,10 @@ install_pkg xz-libs
 install_pkg pacman-contrib
 install_pkg zip
 install_pkg zlib
+##################################################################################################################
+printf_head "Installing version-specific packages"
+##################################################################################################################
+install_pkg lsb-release
 ##################################################################################################################
 if [ "$SYSTEM_TYPE" = "dns" ]; then
 	if devnull install_pkg ntp || devnull install_pkg ntpsec; then
