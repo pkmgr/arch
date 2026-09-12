@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-##@Version           :  202211071239-git
+##@Version           :  202609122155-git
 # @@Author           :  Jason Hempstead
 # @@Contact          :  jason@casjaysdev.pro
 # @@License          :  WTFPL
@@ -27,7 +27,7 @@
 # shellcheck disable=SC2317
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 APPNAME="min-arch"
-VERSION="202211071239-git"
+VERSION="202609122155-git"
 USER="${SUDO_USER:-${USER}}"
 HOME="${USER_HOME:-${HOME}}"
 CONFIG_TEMP_DIR="${TMPDIR:-/tmp}/minConfigFiles"
@@ -203,7 +203,7 @@ case "${SET_HOSTNAME:-$HOSTNAME}" in
 	devel*|build*|ci*|testing*)      SYSTEM_TYPE="devel" ;;
 esac
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SERVICES_ENABLE="docker apache munin-node nginx php-fpm postfix rsyslog sshd "
+SERVICES_ENABLE="docker httpd fail2ban munin-node nginx php-fpm postfix rsyslog nftables sshd "
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SERVICES_DISABLE="avahi-daemon avahi-daemon cups irqbalance named nmb radvd smb"
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -667,7 +667,7 @@ install_pkg cockpit
 install_pkg coreutils
 install_pkg cowsay
 install_pkg cracklib
-install_pkg cracklib-dicts
+# install_pkg cracklib-dicts  # skipped on arch
 install_pkg cronie
 # install_pkg cronie-noanacron  # skipped on arch
 # install_pkg crontabs  # skipped on arch
@@ -691,7 +691,7 @@ install_pkg gzip
 install_pkg hardlink
 install_pkg harfbuzz
 install_pkg hdparm
-install_pkg hostname
+# install_pkg hostname  # skipped on arch
 install_pkg htop
 install_pkg apache
 install_pkg less
@@ -702,28 +702,27 @@ install_pkg make
 install_pkg man-db
 install_pkg man-pages
 install_pkg mlocate
-install_pkg mod_fcgid
+# install_pkg mod_fcgid  # skipped on arch
 # install_pkg mod_geoip  # skipped on arch
 # install_pkg mod_http2  # skipped on arch
 # install_pkg mod_maxminddb  # skipped on arch
-install_pkg mod_perl
-install_pkg mod_ssl
-install_pkg mod_wsgi
+# install_pkg mod_perl  # skipped on arch
+# install_pkg mod_ssl  # skipped on arch
+# install_pkg mod_wsgi  # skipped on arch
 # install_pkg mod_proxy_html  # skipped on arch
 # install_pkg mod_proxy_uwsgi  # skipped on arch
 install_pkg mosh
-install_pkg mrtg
+# install_pkg mrtg  # skipped on arch
 # install_pkg munin  # skipped on arch
 # install_pkg munin-common  # skipped on arch
 # install_pkg munin-node  # skipped on arch
 install_pkg ncurses
-install_pkg ncurses-base
-install_pkg ncurses-libs
+# install_pkg ncurses-base  # skipped on arch
+# install_pkg ncurses-libs  # skipped on arch
 install_pkg net-tools
 install_pkg nginx
-install_pkg ntp
 # install_pkg oddjob-mkhomedir  # skipped on arch
-install_pkg openssh-server
+install_pkg openssh
 install_pkg openssl
 install_pkg shadow
 install_pkg perl
@@ -742,22 +741,22 @@ if type -P dnf >/dev/null 2>&1 && dnf module list php 2>/dev/null | grep -q 'rem
 	_php_install_opts="--disableexcludes=casjay-os-appstream"
 fi
 install_pkg php $_php_install_opts
-install_pkg php-cli $_php_install_opts
-install_pkg php-common $_php_install_opts
+# install_pkg php-cli $_php_install_opts  # skipped on arch
+# install_pkg php-common $_php_install_opts  # skipped on arch
 install_pkg php-fpm $_php_install_opts
 install_pkg php-gd $_php_install_opts
-install_pkg php-gmp $_php_install_opts
+# install_pkg php-gmp $_php_install_opts  # skipped on arch
 install_pkg php-intl $_php_install_opts
-install_pkg php-mbstring $_php_install_opts
-install_pkg php-mysqlnd $_php_install_opts
-install_pkg php-pdo $_php_install_opts
+# install_pkg php-mbstring $_php_install_opts  # skipped on arch
+# install_pkg php-mysqlnd $_php_install_opts  # skipped on arch
+# install_pkg php-pdo $_php_install_opts  # skipped on arch
 install_pkg php-pgsql $_php_install_opts
-install_pkg php-xml $_php_install_opts
+# install_pkg php-xml $_php_install_opts  # skipped on arch
 unset _php_install_opts
 install_pkg pinentry
 install_pkg postfix
 # install_pkg postfix-pcre  # skipped on arch
-install_pkg python-certbot-dns-rfc2136
+install_pkg certbot-dns-rfc2136
 install_pkg python-configargparse
 install_pkg python-cryptography
 # install_pkg python3-enum34  # skipped on arch
@@ -780,7 +779,7 @@ install_pkg python-virtualenv
 install_pkg readline
 # install_pkg rootfiles  # skipped on arch
 install_pkg rsync
-install_pkg rsyslog
+# install_pkg rsyslog  # skipped on arch
 install_pkg screen
 install_pkg sed
 install_pkg sqlite
@@ -820,6 +819,7 @@ run_grub
 ##################################################################################################################
 printf_head "Installing custom web server files"
 ##################################################################################################################
+if [ "${MIN_CONFIG_SETUP:-yes}" != "no" ]; then
 [ -d "$CONFIG_TEMP_DIR" ] && devnull rm_if_exists "$CONFIG_TEMP_DIR"
 devnull git clone -q "https://github.com/casjay-base/arch" "$CONFIG_TEMP_DIR"
 if [ -d "/srv/http/sysinfo/.git" ]; then
@@ -842,10 +842,10 @@ run_post_message="Installing default server files" run_post sudo -HE STATICSITE=
 printf_head "Deleting files"
 ##################################################################################################################
 if system_service_active named || port_in_use "53"; then
-	devnull rm_if_exists $CONFIG_TEMP_DIR/etc/bind*
-	devnull rm_if_exists $CONFIG_TEMP_DIR/var/cache/bind*
+	devnull rm_if_exists $CONFIG_TEMP_DIR/etc/named*
+	devnull rm_if_exists $CONFIG_TEMP_DIR/var/named*
 else
-	devnull rm_if_exists /etc/bind* /var/cache/bind/*
+	devnull rm_if_exists /etc/named* /var/named/*
 fi
 if ! type -P ntp >/dev/null 2>&1 && ! type -P ntpd >/dev/null 2>&1 && ! type -P ntpq >/dev/null 2>&1; then
 	devnull rm_if_exists /etc/ntp*
@@ -867,10 +867,10 @@ if ! type -P nginx >/dev/null 2>&1; then
 fi
 if ! type -P named >/dev/null 2>&1; then
 	IS_INSTALLED_BIND=no
-	devnull rm_if_exists /etc/bind*
-	devnull rm_if_exists /var/cache/bind*
-	devnull rm_if_exists $CONFIG_TEMP_DIR/etc/bind*
-	devnull rm_if_exists $CONFIG_TEMP_DIR/var/cache/bind*
+	devnull rm_if_exists /etc/named*
+	devnull rm_if_exists /var/named*
+	devnull rm_if_exists $CONFIG_TEMP_DIR/etc/named*
+	devnull rm_if_exists $CONFIG_TEMP_DIR/var/named*
 fi
 if ! type -P proftpd >/dev/null 2>&1; then
 	devnull rm_if_exists /etc/proftpd*
@@ -936,25 +936,42 @@ devnull find "$CONFIG_TEMP_DIR" -type f -exec sed -i "s#mycurrentipaddress_6#$my
 devnull find "$CONFIG_TEMP_DIR" -type f -exec sed -i "s#mycurrentipaddress_4#$mycurrentipaddress_4#g" {} \;
 if [ -n "$NETDEV" ]; then
 	fix_network_device_name "$CONFIG_TEMP_DIR"
-	if [ -f "/etc/sysconfig/network-scripts/ifcfg-eth0.sample" ]; then
-		devnull mv -f "/etc/sysconfig/network-scripts/ifcfg-eth0.sample" "/etc/sysconfig/network-scripts/ifcfg-$NETDEV.sample"
+	if [ -f "/etc/conf.d/network-scripts/ifcfg-eth0.sample" ]; then
+		devnull mv -f "/etc/conf.d/network-scripts/ifcfg-eth0.sample" "/etc/conf.d/network-scripts/ifcfg-$NETDEV.sample"
 	fi
 fi
 if [ -z "$does_lo_have_ipv6" ]; then
 	sed -i 's|inet_interfaces.*|inet_interfaces = 127.0.0.1|g' $CONFIG_TEMP_DIR/etc/postfix/main.cf
 fi
-devnull rm_if_exists $CONFIG_TEMP_DIR/etc/{fail2ban,shorewall,shorewall6}
+for fwdir in fail2ban nftables; do
+	if [ -d "/etc/$fwdir" ]; then
+		devnull rm_if_exists "$CONFIG_TEMP_DIR/etc/$fwdir"
+	fi
+done
 devnull mkdir -p /etc/rsync.d /var/log/named
 devnull rsync -avhP $CONFIG_TEMP_DIR/{etc,root,usr,var}* /
-devnull sed -i "s#myserverdomainname#$HOSTNAME#g" /etc/sysconfig/network
-devnull sed -i "s#mydomain#$set_domainname#g" /etc/sysconfig/network
+fi
+if [ -f "/etc/fail2ban/jail.local" ]; then
+	# Every jail in jail.local is permanently enabled - min.sh only runs
+	# once, at bootstrap, so a jail could never be enabled later if it
+	# depended on detecting the service at bootstrap time. Instead we just
+	# make sure each jail's logpath exists (as an empty file, if needed) so
+	# fail2ban never errors on a missing log; once the real service is
+	# installed and starts writing to that same path, the already-running
+	# jail picks it up immediately with no further changes here.
+	devnull mkdir -p /var/log/proftpd /var/log/httpd /var/log/nginx /var/log/named /var/log/mysql /var/opt/mssql/log
+	devnull touch /var/log/proftpd/auth.log /var/log/httpd/error_log /var/log/nginx/error.log /var/log/nginx/access.log
+	devnull touch /var/log/named/security.log /var/log/mysql/mysql.log /var/opt/mssql/log/errorlog /var/log/mail.log /var/log/auth.log
+fi
+devnull sed -i "s#myserverdomainname#$HOSTNAME#g" /etc/conf.d/network
+devnull sed -i "s#mydomain#$set_domainname#g" /etc/conf.d/network
 devnull chmod 644 -Rf /etc/cron.d/* /etc/logrotate.d/*
 devnull touch /etc/postfix/mydomains.pcre
 devnull chattr +i /etc/resolv.conf
 if [ -z "$IS_INSTALLED_BIND" ]; then
 	if does_user_exist 'named'; then
-		devnull mkdir -p /etc/bind /var/cache/bind /var/log/named
-		devnull chown -Rf named:named /etc/bind* /var/cache/bind /var/log/named
+		devnull mkdir -p /etc/named /var/named /var/log/named
+		devnull chown -Rf named:named /etc/named* /var/named /var/log/named
 	fi
 fi
 if ! type -P postfix >/dev/null 2>&1; then
@@ -1220,8 +1237,8 @@ fi
 printf_head "Setting up bind dns [named]"
 ##################################################################################################################
 if ! command -v named >/dev/null 2>&1; then
-	devnull rm_if_exists /etc/bind
-	devnull rm_if_exists /var/cache/bind
+	devnull rm_if_exists /etc/named
+	devnull rm_if_exists /var/named
 	devnull rm_if_exists /var/log/named
 	devnull rm_if_exists /etc/logrotate.d/named
 fi
@@ -1375,6 +1392,16 @@ elif [ "$SYSTEM_TYPE" = "dns" ] || [ "$set_domainname" = "casjaydns.com" ]; then
 		printf_head "Running installer script for dns server"
 		eval "$HOME/Projects/github/dfprivate/dns/install.sh" >/dev/null 2>&1
 	fi
+fi
+##################################################################################################################
+printf_head "Installing and enabling intrusion detection/prevention"
+##################################################################################################################
+install_pkg fail2ban
+install_pkg nftables
+install_pkg rkhunter
+if type -P rkhunter >/dev/null 2>&1; then
+	devnull rkhunter --propupd
+	devnull rkhunter --update
 fi
 ##################################################################################################################
 printf_head "Enabling services"
