@@ -819,7 +819,7 @@ run_grub
 ##################################################################################################################
 printf_head "Installing custom web server files"
 ##################################################################################################################
-if [ "${MIN_CONFIG_SETUP:-yes}" != "no" ]; then
+if [ "${PKMGR_MIN_CONFIG_SETUP:-yes}" != "no" ]; then
 [ -d "$CONFIG_TEMP_DIR" ] && devnull rm_if_exists "$CONFIG_TEMP_DIR"
 devnull git clone -q "https://github.com/casjay-base/arch" "$CONFIG_TEMP_DIR"
 if [ -d "/srv/http/sysinfo/.git" ]; then
