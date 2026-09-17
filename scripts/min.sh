@@ -190,8 +190,8 @@ urlinvalid() {
 		printf_red "Invalid URL\n"
 	else
 		printf_red "Can't find $1\n"
+		exit 1
 	fi
-	exit 1
 }
 urlverify() { urlcheck $1 || urlinvalid $1; }
 setexitstatus() {
@@ -205,7 +205,7 @@ setexitstatus() {
 		return 0
 	fi
 }
-set_trap() { trap -p "$1" | grep "$2" &>/dev/null || trap "$2" "$1"; }
+set_trap() { trap -p "$1" | grep -- "$2" &>/dev/null || trap "$2" "$1"; }
 execute() {
 	kill_all_subprocesses() {
 		local i=""
@@ -783,10 +783,14 @@ __install_pkg grub
 # __install_pkg grub2-tools-extra  # skipped on arch
 # __install_pkg grubby  # skipped on arch
 __install_pkg gzip
-__install_pkg hardlink
+# hardlink was renamed on arch, provided by util-linux below
+# __install_pkg hardlink
+__install_pkg util-linux
 __install_pkg harfbuzz
 __install_pkg hdparm
-# __install_pkg hostname  # skipped on arch
+# hostname is not a standalone arch package, hostname binary comes from inetutils below
+# __install_pkg hostname
+__install_pkg inetutils
 __install_pkg htop
 __install_pkg apache
 __install_pkg less
@@ -796,7 +800,9 @@ __install_pkg s-nail
 __install_pkg make
 __install_pkg man-db
 __install_pkg man-pages
-__install_pkg mlocate
+# mlocate was renamed on arch
+# __install_pkg mlocate
+__install_pkg plocate
 # __install_pkg mod_fcgid  # skipped on arch
 # __install_pkg mod_geoip  # skipped on arch
 # __install_pkg mod_http2  # skipped on arch
@@ -841,7 +847,8 @@ __install_pkg php $_php_install_opts
 __install_pkg php-fpm $_php_install_opts
 __install_pkg php-gd $_php_install_opts
 # __install_pkg php-gmp $_php_install_opts  # skipped on arch
-__install_pkg php-intl $_php_install_opts
+# php-intl is not a standalone arch package, covered by base php
+# __install_pkg php-intl $_php_install_opts
 # __install_pkg php-mbstring $_php_install_opts  # skipped on arch
 # __install_pkg php-mysqlnd $_php_install_opts  # skipped on arch
 # __install_pkg php-pdo $_php_install_opts  # skipped on arch
@@ -888,7 +895,8 @@ __install_pkg wget
 __install_pkg which
 __install_pkg whois
 __install_pkg xz
-__install_pkg xz-libs
+# xz-libs is not a standalone arch package, covered by xz above
+# __install_pkg xz-libs
 __install_pkg pacman-contrib
 __install_pkg zip
 __install_pkg zlib
