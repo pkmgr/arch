@@ -309,7 +309,7 @@ case "${SET_HOSTNAME:-$HOSTNAME}" in
 	devel*|build*|ci*|testing*)      SYSTEM_TYPE="devel" ;;
 esac
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SERVICES_ENABLE="docker apache munin-node nginx php-fpm postfix rsyslog sshd "
+SERVICES_ENABLE="docker apache fail2ban munin-node nginx php-fpm postfix rsyslog sshd "
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SERVICES_DISABLE="avahi-daemon avahi-daemon cups irqbalance named nmb radvd smb"
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1536,24 +1536,28 @@ fi
 ##################################################################################################################
 __printf_head "Configuring the firewall"
 ##################################################################################################################
+# Firewall policy (AI.md's "Firewall policy" section): allow everything
+# by default, fail2ban is the actual protection layer - a restrictive
+# default-deny posture here (both branches below used to default-deny
+# and allowlist a handful of ports) contradicts that policy and risks
+# silently breaking docker/incus/libvirt/podman traffic that was never
+# accounted for in the allowlist. SMB/NetBIOS is the one static
+# exception, dropped outright (deny, not reject - deny is a silent
+# DROP in ufw's own terminology, reject sends a reply that confirms
+# something is listening).
 if type -P ufw >/dev/null 2>&1; then
 	__devnull ufw --force reset
-	__devnull ufw default deny incoming
+	__devnull ufw default allow incoming
 	__devnull ufw default allow outgoing
-	__devnull ufw allow ssh
-	__devnull ufw allow http
-	__devnull ufw allow https
-	__devnull ufw allow 60000:61000/udp
+	__devnull ufw deny proto tcp to any port 139,445
+	__devnull ufw deny proto udp to any port 137,138
 	__devnull ufw --force enable
 else
 	__devnull nft flush ruleset
 	__devnull nft add table inet filter
-	__devnull nft add chain inet filter input '{ type filter hook input priority 0; policy drop; }'
-	__devnull nft add rule inet filter input ct state established,related accept
-	__devnull nft add rule inet filter input iif lo accept
-	__devnull nft add rule inet filter input ip protocol icmp accept
-	__devnull nft add rule inet filter input tcp dport '{22,80,443}' accept
-	__devnull nft add rule inet filter input udp dport '60000-61000' accept
+	__devnull nft add chain inet filter input '{ type filter hook input priority 0; policy accept; }'
+	__devnull nft add rule inet filter input tcp dport '{139,445}' drop
+	__devnull nft add rule inet filter input udp dport '{137,138}' drop
 fi
 ##################################################################################################################
 __printf_head "Disabling dnsmasq"
